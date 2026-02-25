@@ -1,165 +1,135 @@
-import sys  # import system-specific parameters and functions
-from PyQt5.QtWidgets import (  # import PyQt5 GUI components
+import sys  
+from PyQt5.QtWidgets import (  
    QApplication, QMainWindow, QWidget,
    QVBoxLayout, QGridLayout, QPushButton, QLabel
 )
-from PyQt5.QtCore import Qt  # import Qt constants for alignment and orientation
 
+from PyQt5.QtCore import Qt  
 
+class Calculator(QMainWindow):  
+   def __init__(self): 
+       super().__init__()  
 
+       self.setWindowTitle("Calculator")  
+       self._central = QWidget(self)  
+       self.setCentralWidget(self._central) 
 
-class Calculator(QMainWindow):  # create main window class inheriting from QMainWindow
-   def __init__(self):  # constructor for the calculator
-       super().__init__()  # initialize parent class QMainWindow
+       self.current = ""  
+       self.operator = None  
+       self.A = None  
 
+       self.display_label = QLabel("0", self)  
+       self.display_label.setAlignment(Qt.AlignRight)  
+       self.display_label.setStyleSheet("font-size: 40px; padding: 10px;")  
 
-       self.setWindowTitle("Calculator")  # set the window title
-       self._central = QWidget(self)  # create a central widget
-       self.setCentralWidget(self._central)  # set central widget for main window
+       main_layout = QVBoxLayout()  
+       main_layout.addWidget(self.display_label)  
 
+       button_layout = QGridLayout()  
 
-       # ===== Core Variables =====
-       self.current = ""  # current input number
-       self.operator = None  # current operator (+, -, ×, ÷)
-       self.A = None  # first operand for calculations
-
-
-       # ===== Display =====
-       self.display_label = QLabel("0", self)  # create a display label initialized with 0
-       self.display_label.setAlignment(Qt.AlignRight)  # align text to the right
-       self.display_label.setStyleSheet("font-size: 40px; padding: 10px;")  # style the display
-
-
-       # ===== Layouts =====
-       main_layout = QVBoxLayout()  # vertical layout for main window
-       main_layout.addWidget(self.display_label)  # add display label to main layout
-
-
-       button_layout = QGridLayout()  # grid layout for buttons
-
-
-       # List of button labels for calculator
        buttons = [
-           ["AC", "+/-", "%", "÷"],  # top row special buttons
-           ["7", "8", "9", "×"],     # numbers row
-           ["4", "5", "6", "-"],     # numbers row
-           ["1", "2", "3", "+"],     # numbers row
-           ["0", ".", "√", "="],     # bottom row numbers and functions
+           ["AC", "+/-", "%", "÷"],  
+           ["7", "8", "9", "×"],   
+           ["4", "5", "6", "-"],     
+           ["1", "2", "3", "+"],   
+           ["0", ".", "√", "="],     
        ]
 
-
-       # Create buttons and add them to the grid
-       for row_idx, row in enumerate(buttons):  # iterate over rows
-           for col_idx, label in enumerate(row):  # iterate over columns
-               btn = QPushButton(label, self)  # create button with label
-               btn.setFixedSize(80, 60)  # set fixed size for button
-
-
-               # ===== Style buttons =====
-               if label in ["AC", "+/-", "%"]:  # light gray for special buttons
+       for row_idx, row in enumerate(buttons): 
+           for col_idx, label in enumerate(row):  
+               btn = QPushButton(label, self) 
+               btn.setFixedSize(80, 60)  
+              
+               if label in ["AC", "+/-", "%"]:  
                    btn.setStyleSheet("background-color: #D4D4D2; color: black; font-size: 20px;")
-               elif label in ["÷", "×", "-", "+", "="]:  # orange for operators
+               elif label in ["÷", "×", "-", "+", "="]: 
                    btn.setStyleSheet("background-color: #FF9500; color: white; font-size: 20px;")
-               else:  # dark gray for number buttons
+               else:  
                    btn.setStyleSheet("background-color: #505050; color: white; font-size: 20px;")
+               
+               btn.clicked.connect(lambda _, v=label: self.on_button_click(v))  
+               button_layout.addWidget(btn, row_idx, col_idx)  
 
+       main_layout.addLayout(button_layout)
+       self._central.setLayout(main_layout)  
+       self.setFixedSize(self.sizeHint()) 
 
-               # Connect button click to handler
-               btn.clicked.connect(lambda _, v=label: self.on_button_click(v))  # pass label to handler
-               button_layout.addWidget(btn, row_idx, col_idx)  # add button to grid at position
-
-
-       main_layout.addLayout(button_layout)  # add button grid to main layout
-       self._central.setLayout(main_layout)  # set layout for central widget
-       self.setFixedSize(self.sizeHint())  # fix window size to prevent resizing
-
-
-   def on_button_click(self, value):  # handle button clicks
-       if value in "0123456789":  # number buttons
-           if self.current == "0":  # if current is 0, replace it
+   def on_button_click(self, value):  
+       if value in "0123456789":  
+           if self.current == "0":  
                self.current = value
-           else:  # otherwise append the number
+           else: 
                self.current += value
-           self.display_label.setText(self.current)  # update display
+           self.display_label.setText(self.current)  
 
-
-       elif value == ".":  # decimal point
-           if "." not in self.current:  # add decimal if not present
+       elif value == ".":  
+           if "." not in self.current:  
                self.current += "."
-               self.display_label.setText(self.current)  # update display
+               self.display_label.setText(self.current) 
 
-
-       elif value in ["+", "-", "×", "÷"]:  # operator buttons
+       elif value in ["+", "-", "×", "÷"]: 
            try:
-               self.A = float(self.current)  # store first operand
+               self.A = float(self.current)  
            except ValueError:
-               self.A = 0  # default to 0 if conversion fails
-           self.operator = value  # store operator
-           self.current = ""  # reset current input
-           self.display_label.setText("0")  # reset display
+               self.A = 0 
+           self.operator = value  
+           self.current = ""  
+           self.display_label.setText("0")  
 
-
-       elif value == "=":  # equals button
-           if self.A is not None and self.current != "":  # ensure operands exist
-               B = float(self.current)  # second operand
-               result = 0  # initialize result
-               if self.operator == "+":  # addition
+       elif value == "=":  
+           if self.A is not None and self.current != "": 
+               B = float(self.current)  
+               result = 0  
+               if self.operator == "+":  
                    result = self.A + B
-               elif self.operator == "-":  # subtraction
+               elif self.operator == "-": 
                    result = self.A - B
-               elif self.operator == "×":  # multiplication
+               elif self.operator == "×":  
                    result = self.A * B
-               elif self.operator == "÷":  # division
-                   if B != 0:  # avoid division by zero
+               elif self.operator == "÷": 
+                   if B != 0: 
                        result = self.A / B
                    else:
                        result = "Error"
-               self.display_label.setText(str(result))  # show result
-               self.current = str(result)  # store result as current
-               self.operator = None  # reset operator
-               self.A = None  # reset first operand
+               self.display_label.setText(str(result))  
+               self.current = str(result)  
+               self.operator = None  
+               self.A = None  
 
+       elif value == "AC":  
+           self.current = "" 
+           self.operator = None  
+           self.A = None  
+           self.display_label.setText("0")  
 
-       elif value == "AC":  # clear button
-           self.current = ""  # reset current
-           self.operator = None  # reset operator
-           self.A = None  # reset first operand
-           self.display_label.setText("0")  # reset display
-
-
-       elif value == "+/-":  # change sign
-           if self.current.startswith("-"):  # remove negative if present
+       elif value == "+/-":  
+           if self.current.startswith("-"):  
                self.current = self.current[1:]
-           else:  # add negative if not zero
+           else: 
                if self.current != "0":
                    self.current = "-" + self.current
-           self.display_label.setText(self.current)  # update display
+           self.display_label.setText(self.current)  
 
-
-       elif value == "%":  # percentage
+       elif value == "%":  
            try:
-               val = float(self.current)  # convert to float
-               val /= 100  # divide by 100
-               self.current = str(val)  # store as string
-               self.display_label.setText(self.current)  # update display
+               val = float(self.current)  
+               val /= 100  
+               self.current = str(val)  
+               self.display_label.setText(self.current)  
            except:
-               pass  # ignore errors
+               pass  
 
-
-       elif value == "√":  # square root
+       elif value == "√":  
            try:
-               val = float(self.current)  # convert to float
-               val = val ** 0.5  # calculate square root
-               self.current = str(val)  # store as string
-               self.display_label.setText(self.current)  # update display
+               val = float(self.current)  
+               val = val ** 0.5  
+               self.current = str(val)  
+               self.display_label.setText(self.current)  
            except:
-               pass  # ignore errors
+               pass  
 
-
-
-
-if __name__ == "__main__":  # main entry point
-   app = QApplication(sys.argv)  # create Qt application
-   calc = Calculator()  # create calculator instance
-   calc.show()  # show the calculator window
-   sys.exit(app.exec_())  # start the event loop
+if __name__ == "__main__": 
+   app = QApplication(sys.argv) 
+   calc = Calculator()  
+   calc.show() 
+   sys.exit(app.exec_()) 
